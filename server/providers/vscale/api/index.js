@@ -71,7 +71,7 @@ module.exports = class VscaleAPI {
     getAllImages() {
         const options = {
             method: 'GET',
-            path: '/images',
+            path: '/backups',
         };
 
         return this._makeRequest(options);

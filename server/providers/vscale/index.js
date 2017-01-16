@@ -21,10 +21,18 @@ module.exports = class ProviderVscale {
 
         this._imagePromise = void 0;
         this._sshKeyPromise = void 0;
-
+        
         this._api = new API(this._config.token);
     }
 
+
+    static get ST_DEFINED() {
+        return 'defined';
+    }
+
+    static get ST_CREATED() {
+        return 'created';
+    }
 
     static get ST_STARTED() {
         return 'started';
@@ -111,6 +119,14 @@ module.exports = class ProviderVscale {
                     {
                         return InstanceModel.STOPPED;
                     }
+                    case ProviderVscale.ST_CREATED:
+                    {
+                        return InstanceModel.STOPPED;
+                    }
+                    case ProviderVscale.ST_DEFINED:
+                    {
+                        return InstanceModel.STARTING;
+                    }
                     default:
                     {
                         winston.error('[ProviderVscale] Error: Found unknown status:', status);
@@ -142,7 +158,6 @@ module.exports = class ProviderVscale {
                     .spread((image, sshKey) => createInstances(count, image.id, sshKey.id));
             })
             .catch((err) => {
-                console.log(err)
                 throw err;
             });
 
@@ -195,15 +210,19 @@ module.exports = class ProviderVscale {
         }
 
         function createInstances(countOfServers, imageId, sshKeyId) {
+            const names = Array(countOfServers);
+            _.fill(names, self._config.name);
+
             const createOptions = {
                 name: self._config.name,
                 location: self._config.region,
-                rplan: self._config.size,
+                rplan: self._config.plan,
                 make_from: imageId,
                 keys: [sshKeyId],
+                do_start: true,
             };
 
-            return Promise.map(countOfServers, (i) => this._api.createServer(createOptions));
+            return Promise.map(names, (name) => self._api.createServer(createOptions));
         }
     }
 
